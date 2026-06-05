@@ -185,17 +185,18 @@
 
             renderBoard();
 
-            // Gán role cho người chơi thứ 2
+            // Gán role cho O
             if (!playerRole) {
-                playerRole = currentPlayer === "X" ? "O" : "X";
+                playerRole = (currentPlayer === "X") ? "O" : "X";
             }
 
             if (gameOver) {
                 statusDiv.textContent = `🎉 ${currentPlayer} thắng!`;
             } else {
                 const isMyTurn = currentPlayer === playerRole;
-                
-                if (isMyTurn && currentPlayer === "X") {
+
+                // Reset số nước cho X
+                if (currentPlayer === "X") {
                     xMovesLeft = secretMode ? 2 : 1;
                 }
 
@@ -219,6 +220,7 @@
 
         const roomRef = ref(db, 'rooms/' + roomId);
 
+        // Kiểm tra thắng
         if (checkWin(r, c, currentPlayer)) {
             set(roomRef, { 
                 board, 
@@ -229,7 +231,7 @@
             return;
         }
 
-        // Xử lý Secret Mode cho X
+        // === XỬ LÝ SECRET MODE ===
         if (currentPlayer === "X" && secretMode) {
             xMovesLeft--;
             if (xMovesLeft > 0) {
@@ -244,7 +246,7 @@
             }
         }
 
-        // Đổi lượt
+        // Chuyển lượt
         const nextPlayer = currentPlayer === "X" ? "O" : "X";
         xMovesLeft = (secretMode && nextPlayer === "X") ? 2 : 1;
 
@@ -288,9 +290,7 @@
                 return;
             }
             secretMode = !secretMode;
-            
             await set(ref(db, 'rooms/' + roomId + '/secretMode'), secretMode);
-            
             alert(secretMode ? "🔥 SECRET MODE ON\nX được đánh 2 nước mỗi lượt!" : "❌ Secret Mode OFF");
         }
     });
