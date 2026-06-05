@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Phục thù Lộc Trap Boy </title>
+<title>Phục thù Lộc Trap Boy - Caro Online</title>
 <style>
     body{
         font-family: Arial, sans-serif;
@@ -63,7 +63,7 @@
 </style>
 </head>
 <body>
-    <h1> Phục thù Lộc Trap Boy</h1>
+    <h1>🔥 Phục thù Lộc Trap Boy</h1>
    
     <div>
         <button class="btn-create" onclick="createRoom()">Tạo Phòng Mới</button>
@@ -185,12 +185,16 @@
 
             renderBoard();
 
+            // Gán role cho người chơi thứ 2
+            if (!playerRole) {
+                playerRole = currentPlayer === "X" ? "O" : "X";
+            }
+
             if (gameOver) {
-                statusDiv.textContent = `Tâm ${currentPlayer} thắng! Lộc là con gà`;
+                statusDiv.textContent = `🎉 ${currentPlayer} thắng!`;
             } else {
                 const isMyTurn = currentPlayer === playerRole;
                 
-                // Reset xMovesLeft khi được lượt
                 if (isMyTurn && currentPlayer === "X") {
                     xMovesLeft = secretMode ? 2 : 1;
                 }
@@ -225,7 +229,7 @@
             return;
         }
 
-        // Xử lý Secret Mode
+        // Xử lý Secret Mode cho X
         if (currentPlayer === "X" && secretMode) {
             xMovesLeft--;
             if (xMovesLeft > 0) {
@@ -266,7 +270,7 @@
     }
 
     window.resetGame = () => {
-        if (!roomId || !isHost) return alert("Chỉ có anh Tâm mới được reset!");
+        if (!roomId || !isHost) return alert("Chỉ người tạo phòng được reset!");
         
         set(ref(db, 'rooms/' + roomId), {
             board: Array.from({length: SIZE}, () => Array(SIZE).fill("")),
@@ -280,7 +284,7 @@
     document.addEventListener("keydown", async (e) => {
         if (e.ctrlKey && e.key.toLowerCase() === "h") {
             if (!roomId || !isHost) {
-                alert("Chỉ có tao mới bật được!");
+                alert("Chỉ người tạo phòng mới được bật/tắt Secret Mode!");
                 return;
             }
             secretMode = !secretMode;
