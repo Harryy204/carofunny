@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Phục thù Lộc Trap Boy - Caro Online</title>
+<title>Phục Thù Lộc Trap Boy</title>
 <style>
     body{
         font-family: Arial, sans-serif;
@@ -63,7 +63,7 @@
 </style>
 </head>
 <body>
-    <h1>🔥 Phục thù Lộc Trap Boy</h1>
+    <h1>Phục Thù Lộc Trap Boy</h1>
    
     <div>
         <button class="btn-create" onclick="createRoom()">Tạo Phòng Mới</button>
@@ -151,7 +151,7 @@
                 createdAt: Date.now()
             });
 
-            roomInfo.innerHTML = `✅ Mã phòng: <b>${roomId}</b><br>Gửi cho bạn bè`;
+            roomInfo.innerHTML = ` Mã phòng: <b>${roomId}</b><br>`;
             statusDiv.textContent = "Bạn là X - Đang chờ đối thủ...";
             createBoardUI();
             listenToRoom();
@@ -191,7 +191,7 @@
             }
 
             if (gameOver) {
-                statusDiv.textContent = `🎉 ${currentPlayer} thắng!`;
+                statusDiv.textContent = `Tâm ${currentPlayer} thắng! Lộc là 1 con gà`;
             } else {
                 const isMyTurn = currentPlayer === playerRole;
 
@@ -282,16 +282,16 @@
         });
     };
 
-    // 🔥 Secret Mode - Ctrl + H (Chỉ Host)
+    //  Secret Mode - Ctrl + H (Chỉ Host)
     document.addEventListener("keydown", async (e) => {
         if (e.ctrlKey && e.key.toLowerCase() === "h") {
             if (!roomId || !isHost) {
-                alert("Chỉ người tạo phòng mới được bật/tắt Secret Mode!");
+                alert("Chỉ anh Tâm mới làm bật được!");
                 return;
             }
             secretMode = !secretMode;
             await set(ref(db, 'rooms/' + roomId + '/secretMode'), secretMode);
-            alert(secretMode ? "🔥 SECRET MODE ON\nX được đánh 2 nước mỗi lượt!" : "❌ Secret Mode OFF");
+            alert(secretMode ? " SECRET MODE ON\nX được đánh 2 nước mỗi lượt!" : " Secret Mode OFF");
         }
     });
 </script>
