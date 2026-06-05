@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phục thù Lộc Trap Boy</title>
+
+<style>
+body{
+    font-family: Arial;
+    text-align:center;
+    background:#0f172a;
+    color:white;
+}
+
+h1{
+    margin-top:20px;
+}
+
+#status{
+    margin:10px;
+    font-size:18px;
+    color:#38bdf8;
+}
+
+.board{
+    display:grid;
+    grid-template-columns:repeat(15,35px);
+    justify-content:center;
+    gap:2px;
+    margin-top:20px;
+}
+
+.cell{
+    width:35px;
+    height:35px;
+    background:#1e293b;
+    border:1px solid #334155;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:20px;
+    cursor:pointer;
+    user-select:none;
+}
+
+.cell:hover{
+    background:#334155;
+}
+
+.x{ color:#ef4444; font-weight:bold; }
+.o{ color:#22c55e; font-weight:bold; }
+
+button{
+    margin-top:15px;
+    padding:8px 15px;
+    border:none;
+    cursor:pointer;
+    background:#38bdf8;
+    color:black;
+    border-radius:5px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>Phục thù Lộc Trap boy</h1>
+<div id="status">Lượt của X</div>
+
+<div class="board" id="board"></div>
+
+<button onclick="resetGame()">Chơi lại</button>
+
+<script>
+const SIZE = 15;
+let board = [];
+let currentPlayer = "X";
+let gameOver = false;
+
+// 🔥 SECRET MODE
+let xMoves = 1; // mặc định 1 nước/lượt
+let secretMode = false;
+
+const boardDiv = document.getElementById("board");
+const statusDiv = document.getElementById("status");
+
+// bật/tắt cheat bằng Ctrl + H
+document.addEventListener("keydown", (e)=>{
+    if(e.ctrlKey && e.key.toLowerCase() === "h"){
+        secretMode = !secretMode;
+        xMoves = secretMode ? 2 : 1;
+        alert(secretMode ? "🔥 Secret Mode ON (X = 2 nước)" : "❌ Secret Mode OFF");
+    }
+});
+
+function createBoard(){
+    boardDiv.innerHTML = "";
+    board = [];
+
+    for(let r=0;r<SIZE;r++){
+        board[r] = [];
+
+        for(let c=0;c<SIZE;c++){
+            board[r][c] = "";
+
+            const cell = document.createElement("div");
+            cell.className = "cell";
+            cell.dataset.r = r;
+            cell.dataset.c = c;
+
+            cell.onclick = handleClick;
+
+            boardDiv.appendChild(cell);
+        }
+    }
+}
+
+function handleClick(e){
+    if(gameOver) return;
+
+    const r = +e.target.dataset.r;
+    const c = +e.target.dataset.c;
+
+    if(board[r][c] !== "") return;
+
+    board[r][c] = currentPlayer;
+    e.target.textContent = currentPlayer;
+    e.target.classList.add(currentPlayer.toLowerCase());
+
+    if(checkWin(r,c,currentPlayer)){
+        statusDiv.textContent = `🎉 ${currentPlayer} thắng!`;
+        gameOver = true;
+        return;
+    }
+
+    // đổi lượt
+    if(currentPlayer === "X"){
+        xMoves--;
+        if(xMoves === 0){
+            currentPlayer = "O";
+            xMoves = secretMode ? 2 : 1; // reset cho lần sau
+        }
+    }else{
+        currentPlayer = "X";
+        xMoves = secretMode ? 2 : 1;
+    }
+
+    statusDiv.textContent = `Lượt của ${currentPlayer}`;
+}
+
+function checkWin(r,c,p){
+    const dirs = [
+        [1,0],[0,1],[1,1],[1,-1]
+    ];
+
+    for(const [dr,dc] of dirs){
+        let count = 1;
+
+        let i=r+dr, j=c+dc;
+        while(i>=0&&i<SIZE&&j>=0&&j<SIZE&&board[i][j]===p){
+            count++; i+=dr; j+=dc;
+        }
+
+        i=r-dr; j=c-dc;
+        while(i>=0&&i<SIZE&&j>=0&&j<SIZE&&board[i][j]===p){
+            count++; i-=dr; j-=dc;
+        }
+
+        if(count >= 5) return true;
+    }
+
+    return false;
+}
+
+function resetGame(){
+    gameOver = false;
+    currentPlayer = "X";
+    xMoves = secretMode ? 2 : 1;
+    statusDiv.textContent = "Lượt của X";
+    createBoard();
+}
+
+createBoard();
+</script>
+
+</body>
+</html>
