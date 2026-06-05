@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Phục thù Lộc Trap Boy - Caro Online</title>
+<title>Phục thù Lộc Trap Boy</title>
 <style>
     body{
         font-family: Arial, sans-serif;
@@ -64,7 +64,7 @@
 </style>
 </head>
 <body>
-    <h1>🔥 Phục thù Lộc Trap Boy</h1>
+    <h1> Phục thù Lộc Trap Boy</h1>
     
     <div>
         <button class="btn-create" onclick="createRoom()">Tạo Phòng Mới</button>
@@ -74,7 +74,7 @@
 
     <div id="roomInfo"></div>
     <div id="errorMsg"></div>
-    <div id="status">Nhấn "Tạo Phòng Mới" để bắt đầu...</div>
+    <div id="status">Nhấn "Tạo Phòng" để chơi...</div>
     <div class="board" id="board"></div>
     
     <button onclick="resetGame()" style="background:#ef4444;color:white;margin-top:10px;">Chơi Lại</button>
@@ -103,6 +103,8 @@
     let roomId = null;
     let playerRole = null;
     let isHost = false;
+    let secretMode = false;
+    let xMovesLeft = 1;   // Số nước X còn được đánh trong lượt
 
     const boardDiv = document.getElementById("board");
     const statusDiv = document.getElementById("status");
@@ -140,6 +142,7 @@
             roomId = push(ref(db, 'rooms')).key;
             isHost = true;
             playerRole = "X";
+            xMovesLeft = secretMode ? 2 : 1;
 
             await set(ref(db, 'rooms/' + roomId), {
                 board: Array.from({length: SIZE}, () => Array(SIZE).fill("")),
@@ -148,13 +151,12 @@
                 createdAt: Date.now()
             });
 
-            roomInfo.innerHTML = `✅ Mã phòng: <b>${roomId}</b><br>Gửi mã này cho bạn bè`;
+            roomInfo.innerHTML = `✅ Mã phòng: <b>${roomId}</b><br>Gửi cho bạn bè`;
             statusDiv.textContent = "Bạn là X - Đang chờ đối thủ...";
             createBoardUI();
             listenToRoom();
         } catch(e) {
             errorMsg.textContent = "❌ Lỗi tạo phòng: " + e.message;
-            console.error(e);
         }
     };
 
@@ -162,7 +164,6 @@
         errorMsg.textContent = "";
         roomId = document.getElementById("roomInput").value.trim();
         if (!roomId) return alert("Vui lòng nhập mã phòng!");
-
         createBoardUI();
         listenToRoom();
     };
@@ -184,14 +185,14 @@
             renderBoard();
 
             if (gameOver) {
-                statusDiv.textContent = `🎉 ${currentPlayer} thắng!`;
+                statusDiv.textContent = `Tâm ${currentPlayer} thắng! Con gà Lộc`;
             } else if (!playerRole) {
-                playerRole = currentPlayer === "X" ? "O" : "X"; // người vào sau là O
-                set(ref(db, 'rooms/' + roomId + '/players/' + playerRole), true);
-                statusDiv.textContent = `Bạn là ${playerRole}`;
+                playerRole = "O";
+                statusDiv.textContent = `Bạn là O`;
             } else {
-                statusDiv.textContent = currentPlayer === playerRole 
-                    ? `Đến lượt bạn (${currentPlayer})` 
+                const isMyTurn = currentPlayer === playerRole;
+                statusDiv.textContent = isMyTurn 
+                    ? `Đến lượt bạn (${currentPlayer})${secretMode && currentPlayer==='X' ? ' (2 nước)' : ''}` 
                     : `Lượt của ${currentPlayer}`;
             }
         });
@@ -204,20 +205,36 @@
         const c = +e.target.dataset.c;
         if (board[r][c] !== "") return;
 
+        // Đánh nước
         board[r][c] = currentPlayer;
         e.target.textContent = currentPlayer;
         e.target.classList.add(currentPlayer.toLowerCase());
 
         const roomRef = ref(db, 'rooms/' + roomId);
 
+        // Kiểm tra thắng
         if (checkWin(r, c, currentPlayer)) {
             set(roomRef, { board, currentPlayer, gameOver: true });
             return;
         }
 
+        // Xử lý secret mode cho X
+        if (currentPlayer === "X" && secretMode) {
+            xMovesLeft--;
+            if (xMovesLeft > 0) {
+                statusDiv.textContent = `Đến lượt bạn (X) - Còn ${xMovesLeft} nước`;
+                set(roomRef, { board, currentPlayer: "X", gameOver: false });
+                return;
+            }
+        }
+
+        // Đổi lượt
+        const nextPlayer = currentPlayer === "X" ? "O" : "X";
+        xMovesLeft = (secretMode && nextPlayer === "X") ? 2 : 1;
+        
         set(roomRef, { 
             board, 
-            currentPlayer: currentPlayer === "X" ? "O" : "X", 
+            currentPlayer: nextPlayer, 
             gameOver: false 
         });
     }
@@ -236,13 +253,30 @@
     }
 
     window.resetGame = () => {
-        if (!roomId || !isHost) return alert("Chỉ người tạo phòng được reset!");
+        if (!roomId || !isHost) return alert("Chỉ có Tâm mới được reset!");
+        xMovesLeft = secretMode ? 2 : 1;
         set(ref(db, 'rooms/' + roomId), {
             board: Array.from({length: SIZE}, () => Array(SIZE).fill("")),
             currentPlayer: "X",
             gameOver: false
         });
     };
+
+    // 🔥 Secret Mode - Ctrl + H
+    document.addEventListener("keydown", (e) => {
+        if (e.ctrlKey && e.key.toLowerCase() === "h") {
+            secretMode = !secretMode;
+            xMovesLeft = (secretMode && currentPlayer === "X") ? 2 : 1;
+            alert(secretMode ? "🔥 SECRET MODE ON\nX được đánh 2 nước/lượt" : "❌ Secret Mode OFF");
+            
+            // Cập nhật status
+            if (currentPlayer === playerRole) {
+                statusDiv.textContent = secretMode && currentPlayer === "X" 
+                    ? "Đến lượt bạn (X) - 2 nước" 
+                    : `Đến lượt bạn (${currentPlayer})`;
+            }
+        }
+    });
 </script>
 </body>
 </html>
