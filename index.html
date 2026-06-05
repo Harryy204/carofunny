@@ -186,12 +186,9 @@ createBoard();
     
 </script>
 <script type="module">
-  // Import the functions you need from the SDKs you need
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
+  import { getDatabase, ref, set, onValue, push, remove } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-database.js";
 
-  // Your web app's Firebase configuration
   const firebaseConfig = {
     apiKey: "AIzaSyDCUv0qZpPpmgDCg9z86EFji72IG_gRNwo",
     authDomain: "carofunny-a6707.firebaseapp.com",
@@ -202,8 +199,132 @@ createBoard();
     appId: "1:263175159439:web:8151cb4b7318e7b84f3afa"
   };
 
-  // Initialize Firebase
   const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  let roomId = null;
+  let playerRole = null;        // "X" hoặc "O"
+  let isHost = false;
+
+  // ==================== UI TẠO PHÒNG ====================
+  const controls = document.createElement("div");
+  controls.style.margin = "15px";
+  controls.innerHTML = `
+    <button onclick="createRoom()">Tạo phòng mới</button>
+    <input id="roomInput" placeholder="Nhập mã phòng" style="padding:8px; margin:0 10px; width:150px">
+    <button onclick="joinRoom()">Vào phòng</button>
+    <div id="roomInfo" style="margin-top:10px; font-weight:bold;"></div>
+  `;
+  document.body.insertBefore(controls, document.getElementById("board"));
+
+  window.createRoom = async () => {
+    roomId = push(ref(db, 'rooms')).key;
+    isHost = true;
+    playerRole = "X";
+    
+    await set(ref(db, 'rooms/' + roomId), {
+      board: Array(15).fill().map(() => Array(15).fill("")),
+      currentPlayer: "X",
+      gameOver: false,
+      players: { X: true }
+    });
+
+    document.getElementById("roomInfo").innerHTML = `Mã phòng: <b>${roomId}</b> (Chia sẻ cho bạn)`;
+    listenToRoom();
+  };
+
+  window.joinRoom = async () => {
+    roomId = document.getElementById("roomInput").value.trim();
+    if (!roomId) return alert("Nhập mã phòng!");
+
+    const roomRef = ref(db, 'rooms/' + roomId);
+    onValue(roomRef, (snapshot) => {
+      if (!snapshot.exists()) {
+        alert("Phòng không tồn tại!");
+        return;
+      }
+      if (!playerRole) {
+        playerRole = "O";
+        set(ref(db, 'rooms/' + roomId + '/players/O'), true);
+      }
+    }, { onlyOnce: true });
+
+    listenToRoom();
+  };
+
+  function listenToRoom() {
+    const roomRef = ref(db, 'rooms/' + roomId);
+    
+    onValue(roomRef, (snapshot) => {
+      const data = snapshot.val();
+      if (!data) return;
+
+      board = data.board;
+      currentPlayer = data.currentPlayer;
+      gameOver = data.gameOver;
+
+      renderBoard();
+      statusDiv.textContent = gameOver ? `🎉 ${currentPlayer} thắng!` : `Lượt của ${currentPlayer}`;
+    });
+  }
+
+  // Override handleClick để sync lên Firebase
+  window.originalHandleClick = handleClick;
+  window.handleClick = function(e) {
+    if (gameOver || !roomId || currentPlayer !== playerRole) return;
+    
+    const r = +e.target.dataset.r;
+    const c = +e.target.dataset.c;
+    if (board[r][c] !== "") return;
+
+    board[r][c] = currentPlayer;
+    e.target.textContent = currentPlayer;
+    e.target.classList.add(currentPlayer.toLowerCase());
+
+    const roomRef = ref(db, 'rooms/' + roomId);
+    
+    if (checkWin(r, c, currentPlayer)) {
+      set(roomRef, {
+        ...board,
+        board: board,
+        currentPlayer,
+        gameOver: true
+      });
+      return;
+    }
+
+    // Đổi lượt
+    const nextPlayer = currentPlayer === "X" ? "O" : "X";
+    set(roomRef, {
+      board: board,
+      currentPlayer: nextPlayer,
+      gameOver: false
+    });
+  };
+
+  // Render lại board từ data
+  function renderBoard() {
+    const cells = document.querySelectorAll('.cell');
+    cells.forEach(cell => {
+      const r = +cell.dataset.r;
+      const c = +cell.dataset.c;
+      const val = board[r][c];
+      cell.textContent = val;
+      cell.classList.remove('x', 'o');
+      if (val) cell.classList.add(val.toLowerCase());
+    });
+  }
+
+  // Reset game (chỉ host)
+  window.resetGame = function() {
+    if (!roomId || !isHost) return alert("Chỉ host được reset!");
+    set(ref(db, 'rooms/' + roomId), {
+      board: Array(15).fill().map(() => Array(15).fill("")),
+      currentPlayer: "X",
+      gameOver: false,
+      players: { X: true }
+    });
+  };
 </script>
 </body>
 </html>
