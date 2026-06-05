@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Phục thù Lộc Trap Boy</title>
+<title>Phục thù Lộc Trap Boy </title>
 <style>
     body{
         font-family: Arial, sans-serif;
@@ -41,7 +41,6 @@
     .cell:hover{ background:#334155; }
     .x{ color:#ef4444; }
     .o{ color:#22c55e; }
-
     button{
         padding:10px 18px;
         margin:5px;
@@ -65,18 +64,17 @@
 </head>
 <body>
     <h1> Phục thù Lộc Trap Boy</h1>
-    
+   
     <div>
         <button class="btn-create" onclick="createRoom()">Tạo Phòng Mới</button>
         <input id="roomInput" placeholder="Nhập mã phòng" maxlength="20">
         <button class="btn-join" onclick="joinRoom()">Vào Phòng</button>
     </div>
-
     <div id="roomInfo"></div>
     <div id="errorMsg"></div>
-    <div id="status">Nhấn "Tạo Phòng" để chơi...</div>
+    <div id="status">Nhấn "Tạo Phòng Mới" để bắt đầu...</div>
     <div class="board" id="board"></div>
-    
+   
     <button onclick="resetGame()" style="background:#ef4444;color:white;margin-top:10px;">Chơi Lại</button>
 
 <script type="module">
@@ -104,7 +102,7 @@
     let playerRole = null;
     let isHost = false;
     let secretMode = false;
-    let xMovesLeft = 1;   // Số nước X còn được đánh trong lượt
+    let xMovesLeft = 1;
 
     const boardDiv = document.getElementById("board");
     const statusDiv = document.getElementById("status");
@@ -142,12 +140,14 @@
             roomId = push(ref(db, 'rooms')).key;
             isHost = true;
             playerRole = "X";
-            xMovesLeft = secretMode ? 2 : 1;
+            secretMode = false;
+            xMovesLeft = 1;
 
             await set(ref(db, 'rooms/' + roomId), {
                 board: Array.from({length: SIZE}, () => Array(SIZE).fill("")),
                 currentPlayer: "X",
                 gameOver: false,
+                secretMode: false,
                 createdAt: Date.now()
             });
 
@@ -170,7 +170,7 @@
 
     function listenToRoom() {
         const roomRef = ref(db, 'rooms/' + roomId);
-        
+       
         onValue(roomRef, (snapshot) => {
             const data = snapshot.val();
             if (!data) {
@@ -181,18 +181,22 @@
             board = data.board || Array.from({length: SIZE}, () => Array(SIZE).fill(""));
             currentPlayer = data.currentPlayer;
             gameOver = data.gameOver || false;
+            secretMode = !!data.secretMode;
 
             renderBoard();
 
             if (gameOver) {
-                statusDiv.textContent = `Tâm ${currentPlayer} thắng! Con gà Lộc`;
-            } else if (!playerRole) {
-                playerRole = "O";
-                statusDiv.textContent = `Bạn là O`;
+                statusDiv.textContent = `Tâm ${currentPlayer} thắng! Lộc là con gà`;
             } else {
                 const isMyTurn = currentPlayer === playerRole;
-                statusDiv.textContent = isMyTurn 
-                    ? `Đến lượt bạn (${currentPlayer})${secretMode && currentPlayer==='X' ? ' (2 nước)' : ''}` 
+                
+                // Reset xMovesLeft khi được lượt
+                if (isMyTurn && currentPlayer === "X") {
+                    xMovesLeft = secretMode ? 2 : 1;
+                }
+
+                statusDiv.textContent = isMyTurn
+                    ? `Đến lượt bạn (${currentPlayer})${secretMode && currentPlayer==='X' ? ' (2 nước)' : ''}`
                     : `Lượt của ${currentPlayer}`;
             }
         });
@@ -200,30 +204,38 @@
 
     function handleClick(e) {
         if (!roomId || gameOver || currentPlayer !== playerRole) return;
-        
+       
         const r = +e.target.dataset.r;
         const c = +e.target.dataset.c;
         if (board[r][c] !== "") return;
 
-        // Đánh nước
         board[r][c] = currentPlayer;
         e.target.textContent = currentPlayer;
         e.target.classList.add(currentPlayer.toLowerCase());
 
         const roomRef = ref(db, 'rooms/' + roomId);
 
-        // Kiểm tra thắng
         if (checkWin(r, c, currentPlayer)) {
-            set(roomRef, { board, currentPlayer, gameOver: true });
+            set(roomRef, { 
+                board, 
+                currentPlayer, 
+                gameOver: true,
+                secretMode 
+            });
             return;
         }
 
-        // Xử lý secret mode cho X
+        // Xử lý Secret Mode
         if (currentPlayer === "X" && secretMode) {
             xMovesLeft--;
             if (xMovesLeft > 0) {
                 statusDiv.textContent = `Đến lượt bạn (X) - Còn ${xMovesLeft} nước`;
-                set(roomRef, { board, currentPlayer: "X", gameOver: false });
+                set(roomRef, { 
+                    board, 
+                    currentPlayer: "X", 
+                    gameOver: false,
+                    secretMode 
+                });
                 return;
             }
         }
@@ -231,11 +243,12 @@
         // Đổi lượt
         const nextPlayer = currentPlayer === "X" ? "O" : "X";
         xMovesLeft = (secretMode && nextPlayer === "X") ? 2 : 1;
-        
-        set(roomRef, { 
-            board, 
-            currentPlayer: nextPlayer, 
-            gameOver: false 
+
+        set(roomRef, {
+            board,
+            currentPlayer: nextPlayer,
+            gameOver: false,
+            secretMode
         });
     }
 
@@ -253,28 +266,28 @@
     }
 
     window.resetGame = () => {
-        if (!roomId || !isHost) return alert("Chỉ có Tâm mới được reset!");
-        xMovesLeft = secretMode ? 2 : 1;
+        if (!roomId || !isHost) return alert("Chỉ có anh Tâm mới được reset!");
+        
         set(ref(db, 'rooms/' + roomId), {
             board: Array.from({length: SIZE}, () => Array(SIZE).fill("")),
             currentPlayer: "X",
-            gameOver: false
+            gameOver: false,
+            secretMode: secretMode
         });
     };
 
-    // 🔥 Secret Mode - Ctrl + H
-    document.addEventListener("keydown", (e) => {
+    // 🔥 Secret Mode - Ctrl + H (Chỉ Host)
+    document.addEventListener("keydown", async (e) => {
         if (e.ctrlKey && e.key.toLowerCase() === "h") {
-            secretMode = !secretMode;
-            xMovesLeft = (secretMode && currentPlayer === "X") ? 2 : 1;
-            alert(secretMode ? "🔥 SECRET MODE ON\nX được đánh 2 nước/lượt" : "❌ Secret Mode OFF");
-            
-            // Cập nhật status
-            if (currentPlayer === playerRole) {
-                statusDiv.textContent = secretMode && currentPlayer === "X" 
-                    ? "Đến lượt bạn (X) - 2 nước" 
-                    : `Đến lượt bạn (${currentPlayer})`;
+            if (!roomId || !isHost) {
+                alert("Chỉ có tao mới bật được!");
+                return;
             }
+            secretMode = !secretMode;
+            
+            await set(ref(db, 'rooms/' + roomId + '/secretMode'), secretMode);
+            
+            alert(secretMode ? "🔥 SECRET MODE ON\nX được đánh 2 nước mỗi lượt!" : "❌ Secret Mode OFF");
         }
     });
 </script>
