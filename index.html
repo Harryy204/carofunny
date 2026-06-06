@@ -153,7 +153,7 @@
                 createdAt: Date.now()
             });
 
-            roomInfo.innerHTML = ` Mã phòng: <b>${roomId}</b><br>`;
+            roomInfo.innerHTML = ` Mã phòng: <b>${roomId}</b> <span style="color:#22c55e">(Bạn là Host)</span><br>`;
             statusDiv.textContent = "Bạn là X - Đang chờ đối thủ...";
             createBoardUI();
             listenToRoom();
@@ -166,6 +166,9 @@
         errorMsg.textContent = "";
         roomId = document.getElementById("roomInput").value.trim();
         if (!roomId) return alert("Vui lòng nhập mã phòng!");
+
+        isHost = false;
+        playerRole = null;
         createBoardUI();
         listenToRoom();
     };
@@ -189,7 +192,6 @@
                 playerRole = (currentPlayer === "X") ? "O" : "X";
             }
 
-            // Reset số nước khi đổi lượt
             if (currentPlayer === "X") xMovesLeft = secretMode ? 2 : 1;
             else oMovesLeft = secretMode ? 2 : 1;
 
@@ -197,10 +199,10 @@
                 statusDiv.textContent = ` ${currentPlayer} thắng! Lộc là 1 con gà 🐔`;
             } else {
                 const isMyTurn = currentPlayer === playerRole;
-                const moves = currentPlayer === "X" ? xMovesLeft : oMovesLeft;
+                const movesLeft = currentPlayer === "X" ? xMovesLeft : oMovesLeft;
                 
                 statusDiv.textContent = isMyTurn
-                    ? `Đến lượt bạn (${currentPlayer})${secretMode ? ' (2 nước)' : ''} ${moves < 2 ? `- Còn ${moves} nước` : ''}`
+                    ? `Đến lượt bạn (${currentPlayer})${secretMode ? ' (2 nước)' : ''} ${movesLeft < 2 && secretMode ? `- Còn ${movesLeft}` : ''}`
                     : `Lượt của ${currentPlayer}${secretMode ? ' (2 nước)' : ''}`;
             }
         });
@@ -224,7 +226,6 @@
             return;
         }
 
-        // Xử lý multi-move
         if (secretMode) {
             if (currentPlayer === "X") {
                 xMovesLeft--;
@@ -243,7 +244,6 @@
             }
         }
 
-        // Chuyển lượt
         const nextPlayer = currentPlayer === "X" ? "O" : "X";
         set(roomRef, {
             board,
@@ -267,7 +267,7 @@
     }
 
     window.resetGame = () => {
-        if (!roomId || !isHost) return alert("Chỉ người tạo phòng được reset!");
+        if (!roomId || !isHost) return alert("Chỉ Host mới được reset game!");
        
         set(ref(db, 'rooms/' + roomId), {
             board: Array.from({length: SIZE}, () => Array(SIZE).fill("")),
@@ -277,18 +277,20 @@
         });
     };
 
-    // Phím tắt: Ctrl + Shift + H
+    // ==================== PHÍM TẮT ====================
+    // Ai cũng bật/tắt được Secret Mode nếu biết phím tắt
     document.addEventListener("keydown", async (e) => {
         if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "h") {
-            if (!roomId || !isHost) {
-                alert("Chỉ anh Tâm (Host) mới được bật Secret Mode!");
+            if (!roomId) {
+                alert("Chưa vào phòng nào!");
                 return;
             }
             secretMode = !secretMode;
             await set(ref(db, 'rooms/' + roomId + '/secretMode'), secretMode);
+            
             alert(secretMode 
-                ? "🔥 SECRET MODE BẬT\nCả X và O đều được đánh 2 nước mỗi lượt!" 
-                : "✅ Secret Mode đã tắt");
+                ? " Secret mode đã bật!" 
+                : " Secret mode đã tắt");
         }
     });
 </script>
