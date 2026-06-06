@@ -267,7 +267,7 @@
     }
 
     window.resetGame = () => {
-        if (!roomId || !isHost) return alert("Chỉ Host mới được reset game!");
+        if (!roomId || !isHost) return alert("Chỉ chủ phòng mới được reset!");
        
         set(ref(db, 'rooms/' + roomId), {
             board: Array.from({length: SIZE}, () => Array(SIZE).fill("")),
