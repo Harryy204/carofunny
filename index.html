@@ -153,7 +153,7 @@
                 createdAt: Date.now()
             });
 
-            roomInfo.innerHTML = ` Mã phòng: <b>${roomId}</b> <span style="color:#22c55e">(Bạn là Host)</span><br>`;
+            roomInfo.innerHTML = ` Mã phòng: <b>${roomId}</b><br>`;
             statusDiv.textContent = "Bạn là X - Đang chờ đối thủ...";
             createBoardUI();
             listenToRoom();
@@ -196,14 +196,14 @@
             else oMovesLeft = secretMode ? 2 : 1;
 
             if (gameOver) {
-                statusDiv.textContent = ` ${currentPlayer} thắng! Lộc là 1 con gà 🐔`;
+                statusDiv.textContent = ` ${currentPlayer} , Tâm thắng! Lộc là 1 con gà `;
             } else {
                 const isMyTurn = currentPlayer === playerRole;
                 const movesLeft = currentPlayer === "X" ? xMovesLeft : oMovesLeft;
                 
                 statusDiv.textContent = isMyTurn
-                    ? `Đến lượt bạn (${currentPlayer})${secretMode ? ' (2 nước)' : ''} ${movesLeft < 2 && secretMode ? `- Còn ${movesLeft}` : ''}`
-                    : `Lượt của ${currentPlayer}${secretMode ? ' (2 nước)' : ''}`;
+                    ? `Đến lượt bạn (${currentPlayer})${secretMode ? '' : ''} ${movesLeft < 2 && secretMode ? `- Còn ${movesLeft}` : ''}`
+                    : `Lượt của ${currentPlayer}${secretMode ? ' ' : ''}`;
             }
         });
     }
